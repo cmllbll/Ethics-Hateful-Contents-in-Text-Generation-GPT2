@@ -52,45 +52,38 @@ def assemble(L):
     return s 
 
 def make_gstr(L):
-    l=len(L)
-    s='_'+str(L[0])
-    for k in range(1,l):
-        s+='_'+str(L[k])
-    return s+'_'
+    return '_'+'_'.join(L)+'_'
 
 ## transforme une liste de mots ['Je','vais','à','la','plage']
 #en '_Je_vais_à_la_plage_'
 
 def cut_gstr(s):
-    L=[]
-    l=len(s)
-    for k in range(l):
-        if s[k]=='_':
-            L.append(k)
-    m=len(L)
-    M  = [s[L[k]+1:L[k+1]] for k in range(m-1)]
-    return M
-
+    return s.split('_')[1:-1]
 # transformation inverse à la précédente (utile pour recupérer le n-1 gram quand on a le ngram sous la forme '__blabla__')
     
+import threading 
 
-def count_grams(N,txt,dico1,dico2):
+def count_grams(N,txt,dico1,dico2,locks):
     text=np.array(treat_txt(N,txt))
     n=len(text)
     # N + k < n 
     for k in range(n):
         if N+k < n:
             t1=make_gstr(text[k:N+k])
+            locks[0].acquire()
             if t1 in dico1:
                 dico1[t1]+=1
             else:
                 dico1[t1]=1
+            locks[0].release()
         if N+k-1<n:
             t2=make_gstr(text[k:N+k-1])
+            locks[1].acquire()
             if t2 in dico2:
                 dico2[t2]+=1
             else:
                 dico2[t2]=1
+            locks[1].release()
     #return dico1,dico2
     
 
@@ -124,7 +117,7 @@ def count_grams(N,txt,dico1,dico2):
 
 train_limit_lines = 796351
 
-def grams_lbl_k_train(N,file,k,dico1,dico2,limit):
+def grams_lbl_k_train(N,file,k,dico1,dico2,limit,locks):
     with open(file,'r',encoding='utf-8') as f:
         text=''
         c=0
@@ -132,11 +125,14 @@ def grams_lbl_k_train(N,file,k,dico1,dico2,limit):
             if (c>=k*50000) and (c<(k+1)*50000) and c<train_limit_lines:
                     if not type(text)==str:
                         line = ' '.join(text)+' '+line          
-                    count_grams(N,line,dico1,dico2)
+                    count_grams(N,line,dico1,dico2,locks)
                     text=np.array(treat_txt(N,line))[-N:]
             c+=1
 
-
+def thread_task(N,file,k,dico1,dico2,train_limit_lines,locks):
+    grams_lbl_k_train(N,file,k,dico1,dico2,train_limit_lines,locks)
+    gc.collect()
+    
 def grams_lbl_k(N,file,k,dico1,dico2):
     with open(file,'r',encoding='utf-8') as f:
         text=''
@@ -171,12 +167,19 @@ def grams_lbl(N,file):
     return dico1,dico2
 
 def grams_lbl_train(N,file,limit):
+    global dico1
+    global dico2
     dico1={}
     dico2={}
-    k=0
-    for k in range(5):
-        grams_lbl_k_train(N,file,k,dico1,dico2,train_limit_lines)
-        gc.collect()
+    N_THREADS = 2
+    for k in range(0,int(20/N_THREADS),N_THREADS):
+        threads = [None]*N_THREADS
+        locks = [threading.Lock(),threading.Lock()]
+        for i in range(N_THREADS):
+            threads[i]=threading.Thread(target=thread_task,args=(N,file,k+i,dico1,dico2,train_limit_lines,locks))
+            threads[i].start()
+        for i in range(N_THREADS):
+            threads[i].join()
         
     return dico1,dico2
 
@@ -312,7 +315,7 @@ def perplexity_file(N,file,model,limit):
                 m+=n
             i+=1
     probas = (-1/m)*probas
-    return probas
+    return exp(probas)
 
 
 def perplexity_split(N,file,train_prop):
@@ -335,6 +338,26 @@ def perplexity_split(N,file,train_prop):
     perplexity = perplexity_file(N,file,model,limit_line)
     return perplexity
      
+
+def count_limit_line(file,prop):
+    count_w = 0
+    with open(file,encoding='utf-8') as f:
+        for line in f:
+            L = cut_strings_term(line)
+            count_w += len(L)
+    limit_words = train_prop * count_w
+    limit_line=0
+    count_w=0
+    with open(file,encoding='utf-8') as f:
+        for line in f:
+            L = cut_strings_term(line)
+            count_w+=len(L)
+            if count_w < limit_words:
+                limit_line+=1
+    return limit_line
+    
+    
+    
 # fonctionnement : 
     # on parcoure une fois le fichier pour trouver à partir de quelle ligne
     # on a atteint train_pop*100 % du fichier (on compte les mots)
@@ -346,7 +369,9 @@ def perplexity_split(N,file,train_prop):
 #1000061it [01:57, 8484.70it/s] 
 #Out[36]: 45.72483452455676
 
-"frankenstein 6187"
+#"frankenstein 6187"
+
+
 #perplexity_file(2,file,probas,i)
 #7743it [00:00, 88980.60it/s]
 #Out[19]: 13.375999785434162
