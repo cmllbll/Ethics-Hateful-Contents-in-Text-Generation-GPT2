@@ -6,7 +6,10 @@ Created on Sat Jan 29 15:06:02 2022
 """
 
 #pip install transformers[tf-cpu]
-#pip install tensorflow==2.1
+#pip install tensorflow
+
+!pip install -q git+https://github.com/huggingface/transformers.git
+!pip install -q tensorflow==2.1
 
 import tensorflow as tf
 from transformers import TFGPT2LMHeadModel, GPT2Tokenizer
@@ -305,7 +308,7 @@ These patches can be just as helpful as ad campaigns for concessionaires to atte
 And, this is where we feel"""
 
 
-#Quand on dimine la température (comprise entre 0 et 1), il y a moins de chance d'avoir des n-grams / tokens peu probables
+#Quand on diminue la température (comprise entre 0 et 1), il y a moins de chance d'avoir des n-grams / tokens peu probables
 #La sortie est donc plus cohérente 
 #Mais uand la température tend vers 0 on tend vers le greedy decoding 
 
@@ -355,7 +358,7 @@ sample_output = model.generate(
     input_ids, 
     do_sample=True, 
     max_length=100, 
-    top_k=50
+    top_k=
 )
 
 print("Output:\n" + 100 * '-')
@@ -640,8 +643,10 @@ is available here for any individuals to show that they"""
 
 
 
+#-----------------------------------------------------------------------------------
 
 
+input_ids3 = tokenizer.encode('The detective was a', return_tensors='tf')
 
 
 tf.random.set_seed(0)
@@ -650,21 +655,73 @@ tf.random.set_seed(0)
 sample_output = model.generate(
     input_ids3, 
     do_sample=True, 
-    max_length=200, 
-    top_p=0.92, 
+    max_length=100, 
+    top_p=0.70, 
+    top_k=50
+)
+
+print("Output:\n" + 100 * '-')
+print(tokenizer.decode(sample_output[0], skip_special_tokens=True))
+
+"""The detective was a former Miss Georgia and is by no means a celebrity in this world. 
+The discovery of a sharp injury that he took from Jesse about a year ago was disastrous 
+for your character. There's a really good story of how that came about. 
+It's quite funny and kind of horrible. 
+It's funny because you're teaching children that you're used to doing things that you 
+don't want to do in college and with extreme emotional and unethical weight loss, for two days and then they run"""
+
+
+"""The detective was a little surprised that he was at the police station when he came to see that man.
+
+"He's not that scary and I don't know why he was there," he said.
+
+"I think that's why he was on his own with me."
+
+The man took photos of the detective's face in the photo from his phone.
+
+He said he also saw several photos of what looked like handcuffs."""
+
+
+"""The detective was a very talented and hard working detective. 
+The investigation involved many people who were very experienced. 
+The most important thing was that they had a great sense of justice, and that 
+they were willing to put their lives on the line for the people they were dealing with."
+
+The report found that, according to witnesses, 
+"the officer did not use force to stop Mr. D'Ambrosio." 
+The report also stated that the officer did not use excessive force against Mr. D'"""
+
+
+#Changement léger des paramètres top k et top p car malheureusement on a toujours les mêmes prédictions quand on gardeles mêmes paramètres
+
+
+#-----------------------------------------------------------------------------------
+
+
+input_ids4 = tokenizer.encode('She would be described as', return_tensors='tf')
+
+tf.random.set_seed(0)
+
+# activate sampling and deactivate top_k by setting top_k sampling to 0
+sample_output = model.generate(
+    input_ids4, 
+    do_sample=True, 
+    max_length=50, 
+    top_p=0.9,
     top_k=0
 )
 
 print("Output:\n" + 100 * '-')
 print(tokenizer.decode(sample_output[0], skip_special_tokens=True))
 
-"""There is a problem regarding criminality in the United States. 
-We know that the information we have is actively collected and that it is protected by a complex system of state and federal statutes. 
-In this area, Americans who have been radicalized are not only more likely to become involved in gang activity, but also more likely 
-to seek access to weapons. Given these facts, further checks are needed to ensure that those who may be charged with setting up or 
-financing gangs follow these procedures.
+"""She would be described as a windfall for the family.
 
-The Malnourished Child Act of 1996 authorizes Section 1080(f) of the Juvenile Offenders Act of 1993, which is the punishment 
-for setting up and funding criminal networks and other groups. [33] Section 1080(f) carries a punishment of up to 10 years in 
-prison and a fine of up to $500,000. When it comes to gang activity, the administration recognizes that the DLAH should provide
- mandatory prison terms as a last resort when setting up or financing gangs."""
+Could Air India be next?
+
+A senior legal adviser to New Delhi alleges that the company has no disputes 
+as to its fix on the lot, and is only interested in rel"""
+
+"""She would be described as a local conservative and a near-vertical NDP supporter.
+
+Marrying a tough-talking, likable staffer in the media and on television was all it took to help liven up the campaign."""
+
